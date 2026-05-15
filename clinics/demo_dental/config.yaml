@@ -1,0 +1,69 @@
+# ── Identity ─────────────────────────────────────────────────────────────────
+clinic_id: "demo_dental"
+name: "מרפאת שיניים שלמות"
+name_en: "Complete Dental Clinic"
+timezone: "Asia/Jerusalem"
+language: "he"
+
+# ── WhatsApp ──────────────────────────────────────────────────────────────────
+whatsapp:
+  number: "+972501234568"
+  provider: "meta"
+  meta_access_token: "${META_ACCESS_TOKEN_DENTAL}"
+  meta_phone_number_id: "${META_PHONE_NUMBER_ID_DENTAL}"
+  meta_verify_token: "${META_VERIFY_TOKEN_DENTAL}"
+
+# ── AI Behavior ───────────────────────────────────────────────────────────────
+ai:
+  model: "gpt-4o"
+  temperature: 0.3
+  personality: |
+    אתה נציג שירות לקוחות של מרפאת שיניים שלמות. ענה תמיד בעברית ברורה וקצרה.
+
+# ── Calendar Backend ──────────────────────────────────────────────────────────
+calendar:
+  provider: "local_db"
+  slot_duration_minutes: 30
+  booking_window_days: 60
+  min_notice_hours: 4
+
+# ── Services ──────────────────────────────────────────────────────────────────
+services:
+  - id: "checkup"
+    name_he: "בדיקה ושיננית"
+    name_en: "Checkup & Hygienist"
+    duration_minutes: 30
+  - id: "filling"
+    name_he: "סתימה"
+    name_en: "Filling"
+    duration_minutes: 45
+  - id: "whitening"
+    name_he: "הלבנת שיניים"
+    name_en: "Teeth Whitening"
+    duration_minutes: 60
+  - id: "extraction"
+    name_he: "עקירת שן"
+    name_en: "Tooth Extraction"
+    duration_minutes: 30
+
+# ── Working Hours ─────────────────────────────────────────────────────────────
+working_hours:
+  sunday:    { open: "08:00", close: "17:00" }
+  monday:    { open: "08:00", close: "17:00" }
+  tuesday:   { open: "08:00", close: "17:00" }
+  wednesday: { open: "08:00", close: "17:00" }
+  thursday:  { open: "08:00", close: "19:00" }
+  friday:    { open: "08:00", close: "13:00" }
+  saturday:  "closed"
+
+# ── Notifications ─────────────────────────────────────────────────────────────
+notifications:
+  remind_hours_before: 24
+  send_confirmation: true
+
+# ── Human Handoff ─────────────────────────────────────────────────────────────
+handoff:
+  enabled: true
+  trigger_keywords: ["אנוש", "נציג", "כאב דחוף", "חירום"]
+  notify_phone: "+972521234568"
+  message: "הועברת לנציג שירות. ניצור איתך קשר בהקדם."

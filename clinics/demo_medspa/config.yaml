@@ -1,0 +1,70 @@
+# ── Identity ─────────────────────────────────────────────────────────────────
+clinic_id: "demo_medspa"
+name: "ספא מדיקל גלאם"
+name_en: "Glam Medical Spa"
+timezone: "Asia/Jerusalem"
+language: "he"
+
+# ── WhatsApp ──────────────────────────────────────────────────────────────────
+whatsapp:
+  number: "+972501234569"
+  provider: "meta"
+  meta_access_token: "${META_ACCESS_TOKEN_MEDSPA}"
+  meta_phone_number_id: "${META_PHONE_NUMBER_ID_MEDSPA}"
+  meta_verify_token: "${META_VERIFY_TOKEN_MEDSPA}"
+
+# ── AI Behavior ───────────────────────────────────────────────────────────────
+ai:
+  model: "gpt-4o"
+  temperature: 0.3
+  personality: |
+    אתה נציג שירות לקוחות של ספא מדיקל גלאם, מרכז יופי ורפואה אסתטית מוביל.
+    אתה אלגנטי, מקצועי ומכבד. ענה תמיד בעברית ברורה.
+
+# ── Calendar Backend ──────────────────────────────────────────────────────────
+calendar:
+  provider: "local_db"
+  slot_duration_minutes: 60
+  booking_window_days: 45
+  min_notice_hours: 24
+
+# ── Services ──────────────────────────────────────────────────────────────────
+services:
+  - id: "botox"
+    name_he: "בוטוקס"
+    name_en: "Botox"
+    duration_minutes: 30
+  - id: "filler"
+    name_he: "פילר"
+    name_en: "Filler"
+    duration_minutes: 45
+  - id: "laser"
+    name_he: "טיפול לייזר"
+    name_en: "Laser Treatment"
+    duration_minutes: 60
+  - id: "hydrafacial"
+    name_he: "הידרה-פייסיאל"
+    name_en: "HydraFacial"
+    duration_minutes: 60
+
+# ── Working Hours ─────────────────────────────────────────────────────────────
+working_hours:
+  sunday:    { open: "10:00", close: "19:00" }
+  monday:    { open: "10:00", close: "19:00" }
+  tuesday:   { open: "10:00", close: "19:00" }
+  wednesday: { open: "10:00", close: "19:00" }
+  thursday:  { open: "10:00", close: "21:00" }
+  friday:    { open: "10:00", close: "15:00" }
+  saturday:  "closed"
+
+# ── Notifications ─────────────────────────────────────────────────────────────
+notifications:
+  remind_hours_before: 48
+  send_confirmation: true
+
+# ── Human Handoff ─────────────────────────────────────────────────────────────
+handoff:
+  enabled: true
+  trigger_keywords: ["אנוש", "נציג", "ייעוץ רפואי", "שאלה רפואית"]
+  notify_phone: "+972521234569"
+  message: "הועברת לנציג שירות שלנו. ניצור איתך קשר בהקדם."

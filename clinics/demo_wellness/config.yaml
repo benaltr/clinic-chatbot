@@ -1,0 +1,72 @@
+# ── Identity ─────────────────────────────────────────────────────────────────
+clinic_id: "demo_wellness"
+name: "קליניקת האיזון"
+name_en: "Balance Wellness Clinic"
+timezone: "Asia/Jerusalem"
+language: "he"
+
+# ── WhatsApp ──────────────────────────────────────────────────────────────────
+whatsapp:
+  number: "+972501234567"          # The phone number registered in Meta App Dashboard
+  provider: "meta"
+  meta_access_token: "${META_ACCESS_TOKEN_WELLNESS}"
+  meta_phone_number_id: "${META_PHONE_NUMBER_ID_WELLNESS}"
+  meta_verify_token: "${META_VERIFY_TOKEN_WELLNESS}"
+
+# ── AI Behavior ───────────────────────────────────────────────────────────────
+ai:
+  model: "gpt-4o"
+  temperature: 0.3
+  max_history_messages: 10
+  personality: |
+    אתה נציג שירות לקוחות של קליניקת האיזון, קליניקת בריאות ורווחה מובילה בישראל.
+    אתה חם, מקצועי, סבלני ומכבד. ענה תמיד בעברית ברורה וקצרה.
+    אם לקוח שואל שאלה שאינה קשורה לקליניקה, הפנה אותו בנעימות חזרה לנושאים שאתה יכול לעזור בהם.
+
+# ── Calendar Backend ──────────────────────────────────────────────────────────
+calendar:
+  provider: "local_db"
+  slot_duration_minutes: 60
+  booking_window_days: 30
+  min_notice_hours: 2
+
+# ── Services ──────────────────────────────────────────────────────────────────
+services:
+  - id: "massage"
+    name_he: "עיסוי"
+    name_en: "Massage"
+    duration_minutes: 60
+  - id: "reflexology"
+    name_he: "רפלקסולוגיה"
+    name_en: "Reflexology"
+    duration_minutes: 45
+  - id: "acupuncture"
+    name_he: "דיקור סיני"
+    name_en: "Acupuncture"
+    duration_minutes: 60
+  - id: "facial"
+    name_he: "טיפול פנים"
+    name_en: "Facial Treatment"
+    duration_minutes: 60
+
+# ── Working Hours (0=Sunday, Israel standard) ─────────────────────────────────
+working_hours:
+  sunday:    { open: "09:00", close: "18:00" }
+  monday:    { open: "09:00", close: "18:00" }
+  tuesday:   { open: "09:00", close: "18:00" }
+  wednesday: { open: "09:00", close: "18:00" }
+  thursday:  { open: "09:00", close: "20:00" }
+  friday:    { open: "09:00", close: "14:00" }
+  saturday:  "closed"
+
+# ── Notifications ─────────────────────────────────────────────────────────────
+notifications:
+  remind_hours_before: 24
+  send_confirmation: true
+
+# ── Human Handoff ─────────────────────────────────────────────────────────────
+handoff:
+  enabled: true
+  trigger_keywords: ["אנוש", "נציג", "עזרה דחופה", "בעיה"]
+  notify_phone: "+972521234567"
+  message: "הועברת לנציג שירות אנושי. ניצור איתך קשר בהקדם האפשרי. תודה על סבלנותך!"

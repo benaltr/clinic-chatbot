@@ -1,0 +1,35 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "WHATSAPP_BUSINESS_ACCOUNT_ID",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": {
+              "display_phone_number": "+972501234567",
+              "phone_number_id": "1234567890001"
+            },
+            "contacts": [
+              {
+                "profile": { "name": "יוסי כהן" },
+                "wa_id": "972541234567"
+              }
+            ],
+            "messages": [
+              {
+                "from": "972541234567",
+                "id": "wamid.test001",
+                "timestamp": "1700000000",
+                "text": { "body": "שלום" },
+                "type": "text"
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}
