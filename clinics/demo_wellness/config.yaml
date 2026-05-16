@@ -25,7 +25,7 @@ ai:
 
 # ── Calendar Backend ──────────────────────────────────────────────────────────
 calendar:
-  provider: "local_db"
+  provider: "google_calendar"
   slot_duration_minutes: 60
   booking_window_days: 30
   min_notice_hours: 2
