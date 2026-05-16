@@ -7,11 +7,11 @@ language: "he"
 
 # ── WhatsApp ──────────────────────────────────────────────────────────────────
 whatsapp:
-  number: "+972501234567"          # The phone number registered in Meta App Dashboard
+  number: "+15556346755"
   provider: "meta"
-  meta_access_token: "${META_ACCESS_TOKEN_WELLNESS}"
-  meta_phone_number_id: "${META_PHONE_NUMBER_ID_WELLNESS}"
-  meta_verify_token: "${META_VERIFY_TOKEN_WELLNESS}"
+  meta_access_token: "${META_ACCESS_TOKEN}"
+  meta_phone_number_id: "${META_PHONE_NUMBER_ID}"
+  meta_verify_token: "my_verify_token"
 
 # ── AI Behavior ───────────────────────────────────────────────────────────────
 ai:
