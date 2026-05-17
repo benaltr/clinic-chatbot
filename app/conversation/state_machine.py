@@ -62,11 +62,69 @@ class ConversationStateMachine:
                 return handlers.ask_name()
 
             if action == "cancel":
+                appt = await self._calendar.find_appointment(session.phone_number, session.phone_number)
+                if appt:
+                    session.data["cancel_appt_id"] = appt.id
+                    session.data["cancel_service_name"] = appt.service_name
+                    session.data["cancel_date_text"] = appt.date_text
+                    session.data["cancel_time_text"] = appt.time_text
+                    session.state = ConversationState.CANCEL_CONFIRM
+                    return handlers.cancel_confirm(appt.service_name, appt.date_text, appt.time_text)
                 session.state = ConversationState.CANCEL_LOOKUP
                 return handlers.ask_cancel_ref()
 
             if action == "update":
+                date_text = None
+                time_text = None
+                if quick is None:
+                    pre = await self._ai.extract_fields(message, {})
+                    date_text = pre.date_text
+                    time_text = pre.time_text
+
+                appt = await self._calendar.find_appointment(session.phone_number, session.phone_number)
+                if appt:
+                    session.data["update_appt_id"] = appt.id
+                    session.data["name"] = appt.patient_name
+                    service_match = next(
+                        (s for s in self._clinic.services if s.name_he == appt.service_name),
+                        self._clinic.services[0] if self._clinic.services else None,
+                    )
+                    if service_match:
+                        session.data["service_id"] = service_match.id
+                        session.data["service_name"] = service_match.name_he
+
+                    if date_text:
+                        session.data["date_text"] = date_text
+                        slots = await self._calendar.get_available_slots_text(
+                            date_text, session.data.get("service_id", "")
+                        )
+                        if slots:
+                            session.data["available_slots"] = slots
+                            if time_text:
+                                slot = self._pick_slot(time_text, slots)
+                                if slot:
+                                    session.data["time_text"] = slot
+                                    session.state = ConversationState.BOOKING_CONFIRM
+                                    return handlers.booking_confirm(
+                                        session.data["name"],
+                                        session.data.get("service_name", appt.service_name),
+                                        date_text,
+                                        slot,
+                                    )
+                            session.state = ConversationState.BOOKING_TIME
+                            return handlers.ask_time(date_text, slots)
+                        session.state = ConversationState.BOOKING_DATE
+                        return handlers.ask_time(date_text, [])
+
+                    session.state = ConversationState.BOOKING_DATE
+                    return handlers.ask_date(session.data["name"])
+
+                # No appointment found by phone — fall back to ref code lookup
                 session.state = ConversationState.UPDATE_LOOKUP
+                if date_text:
+                    session.data["prefilled_date"] = date_text
+                if time_text:
+                    session.data["prefilled_time"] = time_text
                 return handlers.ask_cancel_ref()
 
             if action == "human":
@@ -104,7 +162,7 @@ class ConversationStateMachine:
             fields = await self._ai.extract_fields(message, {})
             date_text = fields.date_text or message.strip()
             session.data["date_text"] = date_text
-            slots = await self._calendar.get_available_slots_text(date_text, session.data["service_id"])
+            slots = await self._calendar.get_available_slots_text(date_text, session.data.get("service_id", ""))
             if not slots:
                 return handlers.ask_time(date_text, slots)  # stay in BOOKING_DATE so user can retry
             session.data["available_slots"] = slots
@@ -173,6 +231,43 @@ class ConversationStateMachine:
                 return handlers.appointment_not_found()
             session.data["update_appt_id"] = appt.id
             session.data["name"] = appt.patient_name
+
+            # Resolve service from the found appointment so BOOKING_DATE has service_id
+            service_match = next(
+                (s for s in self._clinic.services if s.name_he == appt.service_name),
+                self._clinic.services[0] if self._clinic.services else None,
+            )
+            if service_match:
+                session.data["service_id"] = service_match.id
+                session.data["service_name"] = service_match.name_he
+
+            # Fast-path: skip questions if user already told us the new date/time
+            date_text = session.data.pop("prefilled_date", None)
+            time_text = session.data.pop("prefilled_time", None)
+            if date_text:
+                session.data["date_text"] = date_text
+                slots = await self._calendar.get_available_slots_text(
+                    date_text, session.data.get("service_id", "")
+                )
+                if slots:
+                    session.data["available_slots"] = slots
+                    if time_text:
+                        slot = self._pick_slot(time_text, slots)
+                        if slot:
+                            session.data["time_text"] = slot
+                            session.state = ConversationState.BOOKING_CONFIRM
+                            return handlers.booking_confirm(
+                                session.data["name"],
+                                session.data.get("service_name", appt.service_name),
+                                date_text,
+                                slot,
+                            )
+                    session.state = ConversationState.BOOKING_TIME
+                    return handlers.ask_time(date_text, slots)
+                # prefilled date has no slots — fall through to ask for date
+                session.state = ConversationState.BOOKING_DATE
+                return handlers.ask_time(date_text, [])
+
             session.state = ConversationState.UPDATE_FIELD
             return handlers.ask_update_what()
 

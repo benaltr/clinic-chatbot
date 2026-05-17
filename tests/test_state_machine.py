@@ -41,6 +41,7 @@ async def test_book_keyword_skips_gpt(demo_clinic, mock_ai, mock_calendar):
 
 @pytest.mark.asyncio
 async def test_cancel_keyword(demo_clinic, mock_ai, mock_calendar):
+    mock_calendar.find_appointment.return_value = None  # no appointment → ask for ref
     machine = ConversationStateMachine(ai=mock_ai, calendar=mock_calendar, clinic=demo_clinic)
     session = ConversationSession(
         conversation_id="test-id",

@@ -5,9 +5,28 @@ from app.ai.base import ExtractedFields
 from app.conversation.states import ConversationState
 
 
-# ── IDLE → CANCEL_LOOKUP ──────────────────────────────────────────────────────
+# ── IDLE → auto-lookup by phone ───────────────────────────────────────────────
 
-async def test_cancel_keyword_to_cancel_lookup(make_machine, make_session, mock_ai):
+async def test_cancel_keyword_auto_lookup_found(
+    make_machine, make_session, mock_ai, mock_calendar, fake_appt
+):
+    """When cancel is requested and phone lookup finds an appointment, skip straight to confirm."""
+    mock_calendar.find_appointment.return_value = fake_appt
+    session = make_session(ConversationState.IDLE, phone="+972541111111")
+    reply = await make_machine.process(session, "ביטול")
+    assert session.state == ConversationState.CANCEL_CONFIRM
+    assert session.data["cancel_appt_id"] == "appt-uuid-001"
+    assert session.data["cancel_service_name"] == "עיסוי"
+    mock_ai.classify_intent.assert_not_called()
+    mock_calendar.find_appointment.assert_awaited_once_with("+972541111111", "+972541111111")
+    assert "עיסוי" in reply
+
+
+async def test_cancel_keyword_auto_lookup_not_found_falls_back_to_lookup(
+    make_machine, make_session, mock_ai, mock_calendar
+):
+    """When phone lookup returns nothing, ask user for ref code."""
+    mock_calendar.find_appointment.return_value = None
     session = make_session(ConversationState.IDLE)
     reply = await make_machine.process(session, "ביטול")
     assert session.state == ConversationState.CANCEL_LOOKUP
@@ -15,7 +34,9 @@ async def test_cancel_keyword_to_cancel_lookup(make_machine, make_session, mock_
     assert "אסמכתא" in reply
 
 
-async def test_cancel_digit_2_to_cancel_lookup(make_machine, make_session, mock_ai):
+async def test_cancel_digit_2_auto_lookup_not_found(make_machine, make_session, mock_ai, mock_calendar):
+    """'2' keyword goes to CANCEL_LOOKUP when no appointment found by phone."""
+    mock_calendar.find_appointment.return_value = None
     session = make_session(ConversationState.IDLE)
     await make_machine.process(session, "2")
     assert session.state == ConversationState.CANCEL_LOOKUP
@@ -46,6 +67,14 @@ async def test_appointment_not_found_stays_in_cancel_lookup(
     reply = await make_machine.process(session, "TES-999")
     assert session.state == ConversationState.CANCEL_LOOKUP
     assert "לא מצאתי" in reply
+
+
+async def test_cancel_lookup_by_phone_number(make_machine, make_session, mock_calendar, fake_appt):
+    mock_calendar.find_appointment.return_value = fake_appt
+    session = make_session(ConversationState.CANCEL_LOOKUP, phone="+972541111111")
+    await make_machine.process(session, "+972541111111")
+    mock_calendar.find_appointment.assert_awaited_once_with("+972541111111", "+972541111111")
+    assert session.state == ConversationState.CANCEL_CONFIRM
 
 
 # ── CANCEL_CONFIRM → IDLE ─────────────────────────────────────────────────────
@@ -89,11 +118,3 @@ async def test_cancel_declined_does_not_cancel_appointment(
     assert session.data == {}
     mock_calendar.cancel_appointment.assert_not_awaited()
     assert "לא בוטל" in reply
-
-
-async def test_cancel_lookup_by_phone_number(make_machine, make_session, mock_calendar, fake_appt):
-    mock_calendar.find_appointment.return_value = fake_appt
-    session = make_session(ConversationState.CANCEL_LOOKUP, phone="+972541111111")
-    await make_machine.process(session, "+972541111111")
-    mock_calendar.find_appointment.assert_awaited_once_with("+972541111111", "+972541111111")
-    assert session.state == ConversationState.CANCEL_CONFIRM
