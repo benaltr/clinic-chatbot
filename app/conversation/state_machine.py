@@ -66,9 +66,8 @@ class ConversationStateMachine:
                 return handlers.human_handoff(self._clinic.handoff.message)
 
             if action == "faq":
-                intent_obj = await self._ai.classify_intent(message, self._clinic)
                 answer = await self._ai.answer_faq(
-                    intent_obj.faq_query or message,
+                    intent.faq_query or message,  # type: ignore[possibly-undefined]
                     self._clinic.faqs,
                     self._clinic.ai.personality,
                 )

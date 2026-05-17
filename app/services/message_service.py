@@ -35,7 +35,7 @@ async def handle_incoming(msg: IncomingMessage, clinic: ClinicConfig, db: AsyncS
     if any(kw in msg.body for kw in clinic.handoff.trigger_keywords):
         from app.conversation import handlers
         reply = handlers.human_handoff(clinic.handoff.message)
-        session.state_data = {}  # type: ignore[attr-defined]
+        session.data = {}
         await _send_and_persist(msg, reply, clinic, session, db)
         return
 

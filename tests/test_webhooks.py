@@ -9,11 +9,16 @@ from app.tenants.models import ClinicConfig
 
 @pytest.fixture(autouse=True)
 def patch_registry(demo_clinic):
-    """Replace the live registry with one containing our test clinic."""
+    """Replace the live registry with one containing our test clinic.
+
+    Also patches registry.load to prevent the app lifespan from overwriting
+    our test data when TestClient starts.
+    """
     from app.tenants.registry import registry
     registry._by_number = {demo_clinic.whatsapp.number: demo_clinic}
     registry._by_id = {demo_clinic.clinic_id: demo_clinic}
-    yield
+    with patch.object(registry, "load", return_value=None):
+        yield
     registry._by_number = {}
     registry._by_id = {}
 

@@ -1,9 +1,14 @@
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
+from app.ai.base import ExtractedFields
+from app.calendar.base import AppointmentResult
+from app.conversation.session import ConversationSession
+from app.conversation.state_machine import ConversationStateMachine
+from app.conversation.states import ConversationState
 from app.tenants.models import (
     AIConfig,
     CalendarConfig,
@@ -72,9 +77,7 @@ def mock_ai():
     ai = AsyncMock()
     ai.classify_intent.return_value = Intent(action="unknown")
     ai.answer_faq.return_value = "תשובה לטסט"
-    ai.extract_fields.return_value = MagicMock(
-        name=None, service=None, date_text=None, time_text=None, confirmed=None
-    )
+    ai.extract_fields.return_value = ExtractedFields()
     return ai
 
 
@@ -83,3 +86,40 @@ def mock_calendar():
     calendar = AsyncMock()
     calendar.get_available_slots_text.return_value = ["10:00", "11:00", "12:00"]
     return calendar
+
+
+@pytest.fixture
+def make_session():
+    def _factory(state=ConversationState.IDLE, data=None, phone="+972541111111"):
+        return ConversationSession(
+            conversation_id="test-conv-id",
+            clinic_id="test_wellness",
+            phone_number=phone,
+            state=state,
+            data=data or {},
+        )
+    return _factory
+
+
+@pytest.fixture
+def make_machine(mock_ai, mock_calendar, demo_clinic):
+    return ConversationStateMachine(ai=mock_ai, calendar=mock_calendar, clinic=demo_clinic)
+
+
+@pytest.fixture
+def fake_appt():
+    return AppointmentResult(
+        id="appt-uuid-001",
+        ref_code="TES-001",
+        patient_name="שרה כהן",
+        service_name="עיסוי",
+        date_text="23/06/2025",
+        time_text="10:00",
+    )
+
+
+@pytest.fixture
+def make_fields():
+    def _factory(**kwargs):
+        return ExtractedFields(**kwargs)
+    return _factory

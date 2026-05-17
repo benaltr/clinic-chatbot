@@ -8,9 +8,8 @@ from app.tenants.loader import load_clinic
 
 def test_load_demo_wellness_config():
     """Verify the demo_wellness YAML loads and validates correctly."""
-    os.environ.setdefault("META_ACCESS_TOKEN_WELLNESS", "test_token")
-    os.environ.setdefault("META_PHONE_NUMBER_ID_WELLNESS", "123456789")
-    os.environ.setdefault("META_VERIFY_TOKEN_WELLNESS", "test_verify")
+    os.environ.setdefault("META_ACCESS_TOKEN", "test_token")
+    os.environ.setdefault("META_PHONE_NUMBER_ID", "123456789")
 
     clinic_dir = Path(__file__).parent.parent / "clinics" / "demo_wellness"
     config = load_clinic(clinic_dir)
