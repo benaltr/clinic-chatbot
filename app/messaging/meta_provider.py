@@ -71,7 +71,6 @@ class MetaProvider(MessagingProvider):
         }
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(url, json=body, headers=headers)
-            logger.error("Meta response: %s %s", resp.status_code, resp.text)
             if resp.status_code != 200:
                 logger.error("Meta API error %s: %s", resp.status_code, resp.text)
                 resp.raise_for_status()

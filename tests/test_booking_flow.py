@@ -104,7 +104,7 @@ async def test_date_fallback_uses_raw_message(make_machine, make_session, mock_a
     assert session.data["date_text"] == "23/06"
 
 
-async def test_no_slots_shows_apology_and_transitions_to_booking_time(
+async def test_no_slots_shows_apology_and_stays_in_booking_date(
     make_machine, make_session, mock_ai, mock_calendar
 ):
     mock_ai.extract_fields.return_value = ExtractedFields(date_text="שבת")
@@ -114,7 +114,7 @@ async def test_no_slots_shows_apology_and_transitions_to_booking_time(
         {"name": "שרה", "service_id": "massage", "service_name": "עיסוי"},
     )
     reply = await make_machine.process(session, "שבת")
-    assert session.state == ConversationState.BOOKING_TIME
+    assert session.state == ConversationState.BOOKING_DATE  # stays so user can retry
     assert "אין שעות פנויות" in reply
 
 

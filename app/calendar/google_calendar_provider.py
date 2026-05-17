@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials
@@ -48,9 +49,10 @@ class GoogleCalendarProvider(CalendarProvider):
             if not hours_config or hours_config == "closed":
                 return []
 
-            # Query calendar for events on this date
-            start_of_day = datetime.combine(target_date, hours_config.open)
-            end_of_day = datetime.combine(target_date, hours_config.close)
+            # Build timezone-aware datetimes (required by Google Calendar API)
+            tz = ZoneInfo(self._clinic.timezone)
+            start_of_day = datetime.combine(target_date, hours_config.open, tzinfo=tz)
+            end_of_day = datetime.combine(target_date, hours_config.close, tzinfo=tz)
 
             events_result = self._service.events().list(
                 calendarId=self._calendar_id,
@@ -62,8 +64,10 @@ class GoogleCalendarProvider(CalendarProvider):
 
             booked_times = set()
             for event in events_result.get("items", []):
-                event_start = datetime.fromisoformat(event["start"]["dateTime"].replace("Z", "+00:00"))
-                booked_times.add(event_start.strftime("%H:%M"))
+                event_start_str = event["start"].get("dateTime")
+                if event_start_str:
+                    event_start = datetime.fromisoformat(event_start_str.replace("Z", "+00:00"))
+                    booked_times.add(event_start.astimezone(tz).strftime("%H:%M"))
 
             # Generate available slots
             slots = []
@@ -202,11 +206,11 @@ class GoogleCalendarProvider(CalendarProvider):
         return None
 
     def _parse_datetime(self, date_text: str, time_text: str) -> datetime:
+        import re
+
         d = self._parse_date(date_text)
         if d is None:
             d = (datetime.today() + timedelta(days=1)).date()
-
-        import re
 
         match = re.search(r"(\d{1,2}):(\d{2})", time_text)
         if match:
@@ -214,7 +218,8 @@ class GoogleCalendarProvider(CalendarProvider):
         else:
             hour, minute = 10, 0
 
-        return datetime.combine(d, datetime.min.time().replace(hour=hour, minute=minute))
+        tz = ZoneInfo(self._clinic.timezone)
+        return datetime.combine(d, datetime.min.time().replace(hour=hour, minute=minute), tzinfo=tz)
 
     def _weekday_to_he(self, weekday: int) -> str:
         mapping = {0: "monday", 1: "tuesday", 2: "wednesday", 3: "thursday", 4: "friday", 5: "saturday", 6: "sunday"}

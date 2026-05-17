@@ -16,6 +16,7 @@ _BOOK_KEYWORDS = {"תור", "קביעה", "לקבוע", "להזמין", "הזמ�
 _CANCEL_KEYWORDS = {"ביטול", "לבטל", "לבטל תור", "2"}
 _UPDATE_KEYWORDS = {"שינוי", "עדכון", "לשנות", "לעדכן", "3"}
 _HUMAN_KEYWORDS = {"נציג", "אנוש", "עזרה", "5"}
+_RESET_KEYWORDS = {"התחל", "התחל מחדש", "תפריט", "menu", "start", "restart", "0"}
 
 
 def _quick_intent(text: str) -> str | None:
@@ -39,6 +40,13 @@ class ConversationStateMachine:
 
     async def process(self, session: ConversationSession, message: str) -> str:
         state = session.state
+
+        # ── GLOBAL RESET — works from any state ──────────────────────────────
+        if state not in (ConversationState.IDLE, ConversationState.GREETING):
+            if message.strip().lower() in _RESET_KEYWORDS:
+                session.state = ConversationState.IDLE
+                session.data = {}
+                return handlers.greeting(self._clinic)
 
         # ── IDLE / GREETING ──────────────────────────────────────────────────
         if state in (ConversationState.IDLE, ConversationState.GREETING):
@@ -97,6 +105,8 @@ class ConversationStateMachine:
             date_text = fields.date_text or message.strip()
             session.data["date_text"] = date_text
             slots = await self._calendar.get_available_slots_text(date_text, session.data["service_id"])
+            if not slots:
+                return handlers.ask_time(date_text, slots)  # stay in BOOKING_DATE so user can retry
             session.data["available_slots"] = slots
             session.state = ConversationState.BOOKING_TIME
             return handlers.ask_time(date_text, slots)
