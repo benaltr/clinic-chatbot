@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.openai_provider import OpenAIProvider
 from app.calendar import get_calendar_provider
-from app.conversation.session import append_message, get_or_create_session, save_session
-from app.conversation.state_machine import ConversationStateMachine
+from app.conversation.session import append_message, get_or_create_session, get_recent_messages, save_session
+from app.conversation.states import ConversationState
 from app.core.config import settings
 from app.messaging.base import IncomingMessage, OutgoingMessage
 from app.messaging.meta_provider import MetaProvider
@@ -31,23 +31,31 @@ def _get_messaging_provider(clinic: ClinicConfig) -> MetaProvider:
 async def handle_incoming(msg: IncomingMessage, clinic: ClinicConfig, db: AsyncSession) -> None:
     session = await get_or_create_session(db, clinic.clinic_id, msg.from_number)
 
-    # Handoff keyword shortcut — check before state machine
-    if any(kw in msg.body for kw in clinic.handoff.trigger_keywords):
-        from app.conversation import handlers
-        reply = handlers.human_handoff(clinic.handoff.message)
-        session.data = {}
-        await _send_and_persist(msg, reply, clinic, session, db)
+    # Don't respond when a human agent has taken over
+    if session.state == ConversationState.HUMAN_HANDOFF:
         return
 
+    # Fast-path handoff keywords — skip AI call entirely
+    if any(kw in msg.body for kw in clinic.handoff.trigger_keywords):
+        session.state = ConversationState.HUMAN_HANDOFF
+        session.data = {}
+        await _send_and_persist(msg, clinic.handoff.message, clinic, session, db)
+        return
+
+    history = await get_recent_messages(db, session.conversation_id, limit=20)
     calendar = get_calendar_provider(clinic, db)
-    machine = ConversationStateMachine(ai=_ai_provider, calendar=calendar, clinic=clinic)
 
     try:
-        reply = await machine.process(session, msg.body)
+        reply = await _ai_provider.converse(
+            message=msg.body,
+            history=history,
+            session=session,
+            clinic=clinic,
+            calendar=calendar,
+        )
     except Exception:
-        logger.exception("State machine error for %s", msg.from_number)
-        from app.conversation import handlers
-        reply = handlers.error_message()
+        logger.exception("AI converse failed for %s", msg.from_number)
+        reply = "מצטערים, נתקלנו בבעיה טכנית. אנא נסה שוב או שלח *נציג* לעזרה."
 
     await _send_and_persist(msg, reply, clinic, session, db)
 

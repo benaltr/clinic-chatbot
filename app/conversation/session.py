@@ -77,3 +77,14 @@ async def save_session(db: AsyncSession, session: ConversationSession) -> None:
 
 async def append_message(db: AsyncSession, conversation_id: str, role: str, content: str) -> None:
     db.add(Message(conversation_id=conversation_id, role=role, content=content))
+
+
+async def get_recent_messages(db: AsyncSession, conversation_id: str, limit: int = 20) -> list[dict]:
+    result = await db.execute(
+        select(Message)
+        .where(Message.conversation_id == conversation_id)
+        .order_by(Message.created_at.desc())
+        .limit(limit)
+    )
+    messages = result.scalars().all()
+    return [{"role": m.role, "content": m.content} for m in reversed(messages)]

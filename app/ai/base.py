@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from app.tenants.models import ClinicConfig, FAQItem
+
+if TYPE_CHECKING:
+    from app.calendar.base import CalendarProvider
+    from app.conversation.session import ConversationSession
 
 
 @dataclass
@@ -30,3 +36,13 @@ class AIProvider(ABC):
 
     @abstractmethod
     async def extract_fields(self, message: str, current_data: dict) -> ExtractedFields: ...
+
+    @abstractmethod
+    async def converse(
+        self,
+        message: str,
+        history: list[dict],
+        session: ConversationSession,
+        clinic: ClinicConfig,
+        calendar: CalendarProvider,
+    ) -> str: ...
