@@ -106,6 +106,21 @@ class OpenAIProvider(AIProvider):
         from app.conversation.states import ConversationState
 
         messages: list[dict] = [{"role": "system", "content": build_receptionist_system_prompt(clinic)}]
+
+        # Inject previously found appointment as context so GPT has the real event ID
+        # across conversation turns (tool results aren't persisted to message history)
+        cached_appt = session.data.get("_found_appt")
+        if cached_appt and cached_appt.get("found"):
+            appt_ctx = (
+                f"מידע עדכני על התור של הלקוח (משתמש ב-ID זה לביטול/עדכון):\n"
+                f"appointment_id: {cached_appt['id']}\n"
+                f"שירות: {cached_appt.get('service_name', '')}\n"
+                f"תאריך: {cached_appt.get('date', '')}\n"
+                f"שעה: {cached_appt.get('time', '')}\n"
+                f"שם: {cached_appt.get('patient_name', '')}"
+            )
+            messages.append({"role": "system", "content": appt_ctx})
+
         messages.extend(history)
         messages.append({"role": "user", "content": message})
 
@@ -168,12 +183,13 @@ class OpenAIProvider(AIProvider):
         if name == "find_patient_appointment":
             appt = await calendar.find_appointment(session.phone_number, session.phone_number)
             if not appt:
+                session.data.pop("_found_appt", None)
                 return {"found": False, "message": "לא נמצא תור פעיל"}
             service_id = next(
                 (s.id for s in clinic.services if s.name_he == appt.service_name),
                 clinic.services[0].id if clinic.services else "",
             )
-            return {
+            result = {
                 "found": True,
                 "id": appt.id,
                 "service_name": appt.service_name,
@@ -182,6 +198,9 @@ class OpenAIProvider(AIProvider):
                 "time": appt.time_text,
                 "patient_name": appt.patient_name,
             }
+            # Persist so the event ID survives across conversation turns
+            session.data["_found_appt"] = result
+            return result
 
         if name == "book_appointment":
             temp = CS(
@@ -203,13 +222,12 @@ class OpenAIProvider(AIProvider):
 
         if name == "cancel_appointment":
             success = await calendar.cancel_appointment(args["appointment_id"])
+            if success:
+                session.data.pop("_found_appt", None)
             return {"success": success}
 
         if name == "update_appointment":
             service_id = args.get("service_id", "")
-            if not service_id:
-                # Try to resolve from service_name in args or keep empty (provider uses default duration)
-                service_id = ""
             temp = CS(
                 conversation_id=session.conversation_id,
                 clinic_id=session.clinic_id,
@@ -226,6 +244,8 @@ class OpenAIProvider(AIProvider):
                 },
             )
             appt = await calendar.update_appointment_from_session(temp)
+            if appt:
+                session.data.pop("_found_appt", None)
             return {"success": True, "ref_code": appt.ref_code, "date": appt.date_text, "time": appt.time_text}
 
         return {"error": f"unknown tool: {name}"}

@@ -118,13 +118,20 @@ class GoogleCalendarProvider(CalendarProvider):
             raise
 
     async def find_appointment(self, ref_or_phone: str, phone_number: str) -> AppointmentResult | None:
-        """Find appointment by reference code or phone number."""
+        """Find the most recent upcoming appointment by phone number."""
         try:
-            # Search by description (contains phone number)
+            tz = ZoneInfo(self._clinic.timezone)
+            # Search from start of today so we still catch today's appointments
+            today_start = datetime.combine(
+                datetime.now(tz=tz).date(), datetime.min.time(), tzinfo=tz
+            )
             events_result = self._service.events().list(
                 calendarId=self._calendar_id,
                 q=phone_number,
-                maxResults=10,
+                timeMin=today_start.isoformat(),
+                maxResults=20,
+                singleEvents=True,
+                orderBy="startTime",
             ).execute()
 
             for event in events_result.get("items", []):
@@ -142,7 +149,7 @@ class GoogleCalendarProvider(CalendarProvider):
             self._service.events().delete(calendarId=self._calendar_id, eventId=appointment_id).execute()
             return True
         except HttpError as e:
-            logger.error("Failed to delete event: %s", e)
+            logger.error("Failed to delete event %s: %s", appointment_id, e)
             return False
 
     async def update_appointment_from_session(self, session: ConversationSession) -> AppointmentResult:
